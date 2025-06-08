@@ -85,7 +85,7 @@ Included screenshots:
 ## 📁 Repository Structure (Overview)
 
 ```
-QA_LLM/
+project_root/
 ├── app.py                        # Main Flask app
 ├── templates/                   # HTML templates
 ├── camembert_multilabel_model/ # Fine-tuned model files
