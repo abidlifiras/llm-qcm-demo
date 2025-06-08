@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>LLM MCQ Multi-Label</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h2 { text-align: center; color: #2c3e50; }
+    form {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 6px;
+      color: #34495e;
+    }
+    textarea, input[type="text"] {
+      width: 100%; padding: 8px 10px;
+      font-size: 14px;
+      border: 1px solid #ccc; border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .choice-block {
+      display: flex; align-items: center; margin-top: 10px;
+      padding: 8px; border-radius: 6px;
+      transition: background-color 0.3s ease;
+    }
+    .choice-block span {
+      width: 60px; font-weight: bold;
+    }
+    .choice-block input {
+      flex: 1; margin-left: 10px;
+    }
+    .choice-block .prob {
+      width: 60px; text-align: right; margin-left: 10px;
+    }
+    .correct {
+      background-color: #c8f7c5 !important;
+    }
+    button {
+      margin-top: 15px;
+      background-color: #3498db;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      font-size: 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    #result-text {
+      margin-top: 20px;
+      padding: 12px;
+      font-weight: bold;
+      font-size: 17px;
+      border-left: 6px solid #2ecc71;
+      background-color: #ecf0f1;
+    }
+  </style>
+</head>
+<body>
+  <h2>Posez une question à choix multiples</h2>
+
+  <form id="mcq-form">
+    <label for="question">Question :</label>
+    <textarea id="question" rows="3" required placeholder="Tapez votre question ici..."></textarea>
+
+    <div id="choices-container"></div>
+
+    <div id="buttons">
+      <button type="button" onclick="addChoice()">Ajouter une option</button>
+      <button type="button" onclick="predict()">Prédire</button>
+    </div>
+  </form>
+
+  <div id="result-text"></div>
+
+  <script>
+    let choiceCount = 0;
+    const maxChoices = 5;
+
+    function addChoice() {
+      if (choiceCount >= maxChoices) return;
+      const letter = String.fromCharCode(65 + choiceCount);
+      const container = document.getElementById('choices-container');
+
+      const block = document.createElement('div');
+      block.className = 'choice-block';
+      block.id = `block_${letter}`;
+      block.innerHTML = `
+        <span>${letter} :</span>
+        <input type="text" id="choice_${letter}" required />
+        <div class="prob" id="prob_${letter}">--%</div>
+      `;
+      container.appendChild(block);
+      choiceCount++;
+    }
+
+    async function predict() {
+      const question = document.getElementById("question").value;
+      const choices = [];
+      for (let i = 0; i < choiceCount; i++) {
+        const letter = String.fromCharCode(65 + i);
+        const val = document.getElementById(`choice_${letter}`).value;
+        choices.push(val);
+      }
+
+      const response = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question, choices: choices })
+      });
+
+      const data = await response.json();
+      const predictions = data.predicted_indices;
+      const probs = data.probabilities;
+
+      for (let i = 0; i < choices.length; i++) {
+        const letter = String.fromCharCode(65 + i);
+        const block = document.getElementById(`block_${letter}`);
+        block.classList.remove("correct");
+        if (predictions.includes(i)) block.classList.add("correct");
+        document.getElementById(`prob_${letter}`).innerText = (probs[i] * 100).toFixed(2) + "%";
+      }
+
+      const letterResults = predictions.map(i => String.fromCharCode(65 + i));
+      const finalText = (letterResults.length > 1)
+        ? `Les bonnes réponses sont : ${letterResults.join(', ')}`
+        : `La bonne réponse est : ${letterResults[0]}`;
+
+      document.getElementById("result-text").textContent = finalText;
+      document.getElementById("buttons").innerHTML = `
+        <button type="button" onclick="window.location.reload()">Nouvelle question</button>
+      `;
+    }
+  </script>
+</body>
+</html>
