@@ -140,9 +140,20 @@
       }
 
       const letterResults = predictions.map(i => String.fromCharCode(65 + i));
-      const finalText = (letterResults.length > 1)
-        ? `Les bonnes réponses sont : ${letterResults.join(', ')}`
-        : `La bonne réponse est : ${letterResults[0]}`;
+      let finalText = "";
+
+      if (letterResults.length === 0) {
+        let maxIndex = 0;
+        for (let i = 1; i < probs.length; i++) {
+          if (probs[i] > probs[maxIndex]) maxIndex = i;
+        }
+        document.getElementById(`block_${String.fromCharCode(65 + maxIndex)}`).classList.add("correct");
+        finalText = `❌ Le modèle n’a pas trouvé de bonne réponse claire. La plus probable est : ${String.fromCharCode(65 + maxIndex)}`;
+      } else if (letterResults.length === 1) {
+        finalText = `La bonne réponse est : ${letterResults[0]}`;
+      } else {
+        finalText = `Les bonnes réponses sont : ${letterResults.join(', ')}`;
+      }
 
       document.getElementById("result-text").textContent = finalText;
       document.getElementById("buttons").innerHTML = `

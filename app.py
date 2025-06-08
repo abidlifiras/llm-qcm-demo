@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 app = Flask(__name__)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_path = "bert_camembert_model"
+model_path = "camembert_multilabel_model"
 
 tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
 model = AutoModelForSequenceClassification.from_pretrained(model_path, local_files_only=True)
@@ -39,12 +39,12 @@ def predict():
     with torch.no_grad():
         outputs = model(input_ids=input_ids, attention_mask=attention_mask)
         logits = outputs.logits.squeeze().cpu()
-
         if logits.dim() == 2 and logits.shape[1] == 1:
             logits = logits.squeeze(1)
-
         probs = torch.sigmoid(logits).detach().cpu().numpy().flatten()
 
+
+    probs = probs[:len(choices)]
     predicted_indices = [i for i, p in enumerate(probs) if p > 0.5]
 
     return jsonify({
